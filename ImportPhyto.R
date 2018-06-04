@@ -30,29 +30,53 @@ path <- paste0(rawdatafolder,"/", file)
 # Assign the sheet number
 sheetNum <- as.numeric(length(excel_sheets(path)))
 # Read in the raw data - defaults to the last sheet added
-df.wq <- read_excel(path, sheet = sheetNum, range = cell_cols("K:W"),  col_names = F, trim_ws = T, na = "nil") %>%
+df.wq <- read_excel(path, sheet = sheetNum, range = cell_cols("C:I"),  col_names = F, trim_ws = T, na = "nil") %>%
                     as.data.frame()   # This is the raw data - data comes in as xlsx file, so read.csv will not work
 
-dataDate <- as.Date(df.wq[3,2])
-dataLoc <- as.character(df.wq[3,7])
-analyst <- as.character(df.wq[3,9])
-# Remove unwanted columns and rows
+dataDate <- as.Date(df.wq[1,2])
+dataLoc <- as.character(df.wq[3,2])
+analyst <- as.character(df.wq[1,5])
+dep1 <- as.numeric(df.wq[3,4])
+dep2 <- as.numeric(df.wq[3,7])
+
+# Remove unwanted columns
 df.wq <- df.wq  %>% 
-  select(c(1,5:8,10)) %>%
-  slice(6:8)
+  select(c(1,4,7)) 
 
-# Rename Columns using first row values and then remove the first row
-names(df.wq) <- unlist(df.wq[1,])
-df.wq <- df.wq[-1,]
+# Rename Columns using applicable row values and then remove the first row and last rows
+names(df.wq) <- unlist(df.wq[6,])
+df.wq <- df.wq[-1:-7,]
+df.wq <- df.wq[-c(60:64),]
 
-# Gather data records into tidy format, modify column names and add missing columns
-df.wq <- gather(df.wq,"Taxa","Density", 2:ncol(df.wq), na.rm =T) %>% 
-  dplyr::rename("Depth_m" = "(meters)") %>% 
-  mutate(SampleDate = dataDate, 
-         Station = dataLoc, 
-         Analyst = analyst, 
-         ImportDate = today(), 
-         DataSource = file) 
+#!# Add columns for depths
+df.wq["dep1"]<-dep1
+df.wq["dep2"]<-dep2
+
+#!# Split data frame into two based on depth and merge into one
+df1.wq <- df.wq %>%
+  select(c(1,2,4))
+names(df1.wq) <- (c("Taxa","Density","Depth_m"))
+
+df2.wq <- df.wq %>%
+  select(c(1,3,5))
+names(df2.wq) <- (c("Taxa","Density","Depth_m"))
+
+df.wq <- rbind(df1.wq, df2.wq)
+
+#!# Remove values where Density = NA
+removeNA <- complete.cases(df.wq)
+df.wq <- df.wq[removeNA,]
+
+#!# Remove values where Density = 0
+removeZeros <- apply(df.wq, 1, function(row) all(row !=0 ))
+df.wq <- df.wq[removeZeros,]
+
+# modify column names and add missing columns
+df.wq["SampleDate"]<-dataDate
+df.wq["Station"]<-dataLoc
+df.wq["Analyst"]<-analyst
+df.wq["ImportDate"]<-today()
+df.wq["DataSource"]<-file
 
 # Fix data types and digits
 df.wq$Density <- round(as.numeric(df.wq$Density))
@@ -65,16 +89,16 @@ con <- dbConnect(odbc::odbc(),
                  timezone = "America/New_York")
 # Get Taxa Table and check to make sure taxa in df.wq are in the Taxa Table - if not warn and exit
 df_taxa_wach <- dbReadTable(con,"tbl_Taxa")
-unmatchedTaxa <- which(is.na(df_taxa_wach$ID[match(df.wq$Taxa, df_taxa_wach$Name)]))
+ unmatchedTaxa <- which(is.na(df_taxa_wach$ID[match(df.wq$Taxa, df_taxa_wach$Name)]))
 if (length(unmatchedTaxa) > 0){
   # Exit function and send a warning to user
   stop(paste("This data file contains", length(unmatchedTaxa),
              "records with taxa that are not present in the Taxa Table -
-             Please add new taxa to the Taxa Table or fix names prior to importing new records.",
-             "The taxa not in the Taxa Table are: ", paste(unique(df.wq[unmatchedTaxa, "Taxa"]), collapse = ", ")), call. = FALSE)
-}
+            Please add new taxa to the Taxa Table or fix names prior to importing new records.",
+            "The taxa not in the Taxa Table are: ", paste(unique(df.wq[unmatchedTaxa, "Taxa"]), collapse = ", ")), call. = FALSE)
+ }
 # Unique ID number
-df.wq$UniqueID <- paste(df.wq$Station, df.wq$SampleDate, df.wq$Depth_m, df_taxa_wach$ID[match(df.wq$Taxa, df_taxa_wach$Name)], sep = "_")
+df.wq$UniqueID <- paste(df.wq$Station, df.wq$SampleDate, df.wq$Depth_m, df.wq$Taxa, sep = "_")
 
 ## Make sure it is unique within the data file - if not then exit function and send warning
 dupecheck <- which(duplicated(df.wq$UniqueID))
@@ -144,12 +168,12 @@ return(dfs)
 #### COMMENT OUT SECTION BELOW WHEN RUNNING SHINY
 ########################################################################################################
 # #RUN THE FUNCTION TO PROCESS THE DATA AND RETURN 2 DATAFRAMES and path AS LIST:
-# dfs <- PROCESS_DATA(file, rawdatafolder, filename.db, ImportTable = ImportTable, ImportFlagTable = NULL )
+dfs <- PROCESS_DATA(file, rawdatafolder, filename.db, ImportTable = ImportTable, ImportFlagTable = NULL )
 # #
 # # # Extract each element needed
-# df.wq     <- dfs[[1]]
-# path      <- dfs[[2]]
-# df.flags  <- dfs[[3]]
+df.wq     <- dfs[[1]]
+path      <- dfs[[2]]
+df.flags  <- dfs[[3]]
 
 ########################################################################################################
 
@@ -178,8 +202,8 @@ rm(con)
 }
 ### END
 # 
-# IMPORT_DATA(df.wq, df.flags = NULL, path, file, filename.db, processedfolder = NULL,
-#             ImportTable = ImportTable, ImportFlagTable = NULL)
+IMPORT_DATA(df.wq, df.flags = NULL, path, file, filename.db, processedfolder = NULL,
+             ImportTable = ImportTable, ImportFlagTable = NULL)
 
 
 
