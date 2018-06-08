@@ -8,16 +8,16 @@
 
 # COMMENT OUT BELOW WHEN RUNNING FUNCTION IN SHINY
 
-# # Load libraries needed
-  library(tidyverse)
-  library(stringr)
-  library(odbc)
-  library(RODBC)
-  library(DBI)
-  library(lubridate)
-  library(readxl)
-  library(magrittr)
-  library(DescTools)
+### Load libraries needed ####
+  # library(tidyverse)
+  # library(stringr)
+  # library(odbc)
+  # library(RODBC)
+  # library(DBI)
+  # library(lubridate)
+  # library(readxl)
+  # library(magrittr)
+  # library(DescTools)
 
 # COMMENT OUT ABOVE CODE WHEN RUNNING IN SHINY!
 
@@ -68,21 +68,29 @@ removeNA <- complete.cases(df.wq)
 df.wq <- df.wq[removeNA,]
 
 #!# Remove values where Density = 0
-removeZeros <- apply(df.wq, 1, function(row) all(row !=0 ))
-df.wq <- df.wq[removeZeros,]
+# removeZeros <- apply(df.wq, 1, function(row) all(row !=0 ))
+df.wq <- df.wq[df.wq$Density > 0,]
 
 # modify column names and add missing columns
-df.wq["SampleDate"]<-dataDate
-df.wq["Station"]<-dataLoc
-df.wq["Analyst"]<-analyst
-df.wq["ImportDate"]<-today()
-df.wq["DataSource"]<-file
+# df.wq["SampleDate"] <- dataDate
+# df.wq["Station"] <- dataLoc
+# df.wq["Analyst"] <- analyst
+# df.wq["ImportDate"] <- today()
+# df.wq["DataSource"] <- file
+
+df.wq <- df.wq %>% 
+  mutate(SampleDate = dataDate, 
+         Station = dataLoc, 
+         Analyst = analyst, 
+         ImportDate = today(), 
+         DataSource = file) 
+
 
 # Fix data types and digits
 df.wq$Density <- round(as.numeric(df.wq$Density))
 df.wq$Depth_m <- as.numeric(df.wq$Depth_m)
-
 # Connect to db 
+
 con <- dbConnect(odbc::odbc(),
                  .connection_string = paste("driver={Microsoft Access Driver (*.mdb, *.accdb)}",
                                             paste0("DBQ=", filename.db), "Uid=Admin;Pwd=;", sep = ";"),
@@ -168,12 +176,12 @@ return(dfs)
 #### COMMENT OUT SECTION BELOW WHEN RUNNING SHINY
 ########################################################################################################
 # #RUN THE FUNCTION TO PROCESS THE DATA AND RETURN 2 DATAFRAMES and path AS LIST:
-dfs <- PROCESS_DATA(file, rawdatafolder, filename.db, ImportTable = ImportTable, ImportFlagTable = NULL )
-# #
-# # # Extract each element needed
-df.wq     <- dfs[[1]]
-path      <- dfs[[2]]
-df.flags  <- dfs[[3]]
+# dfs <- PROCESS_DATA(file, rawdatafolder, filename.db, ImportTable = ImportTable, ImportFlagTable = NULL )
+# # #
+# # # # Extract each element needed
+# df.wq     <- dfs[[1]]
+# path      <- dfs[[2]]
+# df.flags  <- dfs[[3]]
 
 ########################################################################################################
 
