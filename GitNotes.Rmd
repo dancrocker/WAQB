@@ -1,0 +1,259 @@
+---
+title: "Git Notes"
+author: "Dan Crocker"
+date: "June, 2018"
+output:
+  rmarkdown::html_document:
+    toc: true
+    # highlight: "pygments"
+    # css: style_tests.css
+    # highlight: "monochrome" #  "tango", "pygments", "kate", "monochrome", "espresso", "zenburn", "haddock", "textmate"
+    theme: "lumen"
+---
+<style>
+pre.green {
+    background-color: #E0EEEE !important; }
+</style>
+
+<style>
+.highlightme { background-color:#EEE5DE; }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+library(knitr)
+```
+
+```{r, echo = FALSE}
+# Color Format
+colFmt = function(x,color){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{",x,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>",x,"</font></span>",sep="")
+  else
+    x
+}
+```
+
+```{r, echo = FALSE}
+#### These are some notes for R markdown formatting 
+
+
+### This following code will format text with background highlighting
+#  <span class="highlightme">test</span>
+
+### Another way to format text is by defining a function to wrap the text in html tags. You just define the function and then use it in a code chunk like this:
+#  `r colFmt("MY COLORED TEXT",'skyblue4')` 
+
+### Yet another way to format text is using css styles defined in a css file. 
+```
+
+This document is a running list of commands, notes, and workflows for using git to do version tracking with projects and to collaborate via GitHub. All referenced commands below are executed in the git shell. Some actions (such as commit, push, pull) can be executed in RStudio using the Git features therein. 
+
+Note- Any text that appears between < and > is meant to be replaced along with the markers - so in the actual command `<my_name>` would just become: `dan`. If the markers are not indicated in a code example then usually the code should be executed as is... unless there is an obvious substitution to make. 
+
+### STARTING VERSION TRACKING WITH AN EXISTING R PROJECT
+
+Your R project directory is your local git repository. Everything in this directory can be tracked with git. 
+
+1. Open an existing R project and make sure version control is turned on by going to Tools -> Project Options -> Git/SVN and choose git. 
+2. To start version tracking for a this project, open the shell (Git tab --> "More" gear --> shell) and verify that the current working directory is the same as your project directory by executing the command: `pwd`. It should also show up in the shell prompt. 
+3. Next, initialize tracking on this project by running `git init`. This creates the necessary tracking files in the project directory. 
+4. Restart the R session by pressing [Ctrl + Shift + F10]. When the session reopens you should now see all your project files under the R Studio Git tab 
+5. Highlight any files that you want to ignore (not track) and use the gear "More" dropdown in the Git tab of R Studio and select "Ignore". The ignored files will not be tracked.
+6. Stage all the files you want to commit by clicking the box in the "Staged" column - files should all turn green with an "A" - meaning they are ready to be added to version tracking
+7. Make the first commit using the commit button or via shell: `git commit -m "Commit Message here"`
+
+As changes to files are made and saved the Status column in the git tab will change to a blue M to let you know that there are modifications that have not been commited. The files are still saved, but you have to commit them in order for git to track the changes. At this point your project is set up to track changes to your locally stored project
+
+###GITHUB
+
+First and foremost, create your free account if you don't have one already (no instructions provided here). 
+Then the first thing to do is to set up SSH Keys so that your computer and your GitHub account can pass data back and forth:
+
+1. Open Git Bash.  
+2. Generate a new SSH key, substituting in your email associated with GitHub: `ssh-keygen -t rsa -b 4096 -C "username@domain.com"`  
+This creates a new ssh key, using the provided email as a label.  
+3. When you're prompted to "Enter a file in which to save the key," press Enter. This accepts the default file location.
++ Enter a file in which to save the key (/p//.ssh/id_rsa):[Press enter]    
++ At the prompt, type a secure passphrase.  
++ Enter passphrase (empty for no passphrase): [Type a passphrase]  
++ Enter same passphrase again: [Type passphrase again]  
+4. Start the ssh-agent in the background: `eval $(ssh-agent -s)`  
+5. Add your SSH private key to the ssh-agent:`ssh-add /p//.ssh/id_rsa`   
++ If you created your key with a different name, or if you are adding an existing key that has a different name, replace + id_rsa in the command with the name of your private key file.  
+
+###ADDING SSH KEY TO GITHUB ACCOUNT
+1. Copy the SSH key to your clipboard:`clip < /p//.ssh/id_rsa.pub`  
+If your SSH key file has a different name than the example code, modify the filename to match your current setup. When copying your key, don't add any newlines or whitespace. 
+2. Login to GitHub and go the upper-right corner of any page, click your profile photo, then click "Settings".  
+3. In the user settings sidebar, click SSH and GPG keys.  
+4. Click New SSH key or Add SSH key.  
+5. In the "Title" field, add a descriptive label for the new key. You might call this key "SSH_June2018", just so you know when it was created.  
+6. Paste your key into the "Key" field.  
+7. Click Add SSH key.  
+8. If prompted, confirm your GitHub password.  
+
+You can run `ssh -T git@github.com` to test your connection to GitHub - it should either ask for your passphrase or throw an error message. If you get an error message then there is a problem and you won't be able to push to GitHub until it gets resolved. Go to Troubleshooting section for possible solutions. 
+
+###ADD A PROJECT TO A GITHUB REPO 
+#####(assumes GitHub account exists already and SSH Keys have been set up)
+1. Login to GitHub and create a new repository that is completely empty (no readme or license yet). Pick a name that makes sense, is short, and has no spaces or special characters. 
+
+2. Get the url to the repo...  
+There are 2 urls that can be used to connect to a GitHub repo, SSH and HTTPS. Which type of url is used has major implications, some of which I do not know yet. All I know so far is that the https method makes you enter your username and password to push any commits, where as the SSH version allows the use of a passphrase, which can avoided by setting it to nothing.  There is a way to stash credentials for the https version, but this was a bit complicated. The 2 url formats are as follows:  `git@github.com:user_name/repo_name.git` or  `https://@github.com/user_name/repo_name.git`
+You can copy these urls from GitHub and avoid typos by clicking the green "clone or download" button from within the repo and using the clipboard button. There you can toggle between SSH and HTTPS urls. I like to use the SSH version ... though some sources are pushing for use of HTTPS. This can be changed later on, so which version selected is not critial on the outset of the project. 
+3. Back in the git shell within R Studio,  add the GitHub repository as a remote version (called origin) using either the SSH or HTTPS url:
+`git remote add origin git@github.com:account_name/repo_name.git`  
+or  
+`git remote add origin https://github.com/account_name/repo_name.git`  
+If a typo was made you can fix it by resetting the remote by specifying its name as follows:
+`git remote set-url origin git@github.com:account_name/repo_name.git`  
+To remove a remote run: `git remote rm <remote_name>`  
+
+4. Push the local repository to the remote repository: `git push -u origin master`  
++ For this to work SSH keys must have been previously set up (see above)  
++ Note- the -u flag indicates that this is an upstream repository. 
+
+Thats it... you should now have a local R project that is also up in your GitHub repo. 
+As new commits are made they can be pushed from the shell with: `git push <remote> <branch>`. The branch is indicated all the way to the right on the Git tab banner. The reomote can be the url or name of the remote branch. 
+
+#### Some logical next steps:
+Create a readme and a license in your GitHub repo. This is usually a good idea, but not absolutely necessary. If files are added or modified on GitHub then those changes will need to be incorporated locally before new commits can be pushed to the remote. 
+
+
+To bring the changes on the remote repo into you local (downstream) repo you can run:
+```{green}
+git pull <remote-repo name or url> <branch>
+```
+
+#### Pulling via Rebase
+The --rebase option can be used to ensure a linear history by preventing unnecessary merge commits. Many developers prefer rebasing over merging, since it’s like saying, "I want to put my changes on top of what everybody else has done." In this sense, using git pull with the --rebase flag is even more like svn update than a plain git pull.
+
+All your changes are now safe and, if something goes wrong, you can just clone again from your remote repo with:
+```{green}
+git clone <remote_repo_name>
+```
+
+### STEPS TO MERGE REMOTE REPO WITH LOCAL REPO AND THEN PUSH CHANGES TO REMOTE ORIGIN
+1. Add the a remote fork as a remote for your repo:
+```{green}
+	git remote add <remote_nickname> <remote url>
+```
+ Now verify the remote:
+```{green}
+	git remote -v 
+```
+If url was wrong it can be reset with: 
+```{green}
+	git remote set-url <remote_nickname> <remote url>
+```
+To remove a remote: 
+```{green}
+git remote rm <remote_nickname>
+```
+2.  Fetch the remote:
+```{green}
+	git fetch <remote_nickname>
+```
+5.  Merge the remote with the local master:
+```{green}
+	git merge <remote_nickname>/<local repo (usually master)>
+```
+If no conflicts were identifiend then proceed to step 6. If conflicts were present then address conflicts:
+
+#### Dealing with a Pull that requires manual merging:
+If a conflict is identified after running a pull or merge then it must either be reexecuted using the --rebase option (see above) or by manually fixing the conflicts, which is explained below:
+
+From your project repository, you can check out the branch and take a look at the changes before pulling:
+```{green}
+git checkout -b <remote_nickname> <remote branch name>
+```
+If the changes in the remote are all acceptable and you want to avoid the manual conflict resolution, then run:
+```{green}
+git pull --rebase <remote-repo name or url> <branch> 
+```
+If there are things from each version that need to be retained then the conflicts should be addressed manually:
+Open the scripts noted with conflicts in R Studio or in another text editor (Notepad++).  
+Decide if you want to keep only your branch's changes, keep only the other branch's changes, or make a brand new change, which may incorporate changes from both branches. Delete all the conflict markers `<<<<<<<, =======, >>>>>>>` so the resulting script looks like how you want it. Save the script once the conflicts have been resolved.
+
+Add or stage your changes with: `git add .`
+Commit your changes with a comment: `git commit -m "Resolved merge conflict by ..."`
+
+6. Now the origin (on GitHub) will be behind, and can be brought to current by pushing the commits:
+```{green}
+	git push <remote_nickname (probably origin)> <local repo (usually master)>
+```
+
+### TERMINOLOGY, TIPS & TRICKS:
+
+#### Terminology: 
+`git pull` does a `git fetch` followed by a `git merge`. 
+You can do a git fetch at any time to update your remote-tracking branches under refs/remotes/<remote>/. This operation never changes any of your own local branches under refs/heads, and is safe to do without changing your working copy.
+
+####TIPS & TRICKS
+Adding upstream branch:
+```{green}
+git remote add upstream <remote url>
+```
+
+Run the following command and follow the instructions in your editor to edit your configuration file:
+```{green}
+ git config --global --edit
+```
+
+Sometimes you may end up in editor mode from the shell - the mouse becomes useless here so keyboard commands are the only option...here are some:
+`shift zz` - saves and exits current editor terminal
+`esc` - jumps out of text insert mode
+
+Copy-Paste-find commands in shell. Ctrl-v and Ctrl-c do not work in the shell. To cut and paste from the shell you need to right click the top of the shell window and choose an option from the edit dropdown. 
+
+### TROUBLESHOOTING
+
+#### Mistakes
+If some commits were made locally and it turns out that you want to discard them and get your project back to the current state of the remote, then you need to fetch the commits from the remote repository, and position your working copy to the tip of its master branch as follows:
+```{green}
+git fetch origin
+git reset --hard origin/master
+```
+
+####SSH Keys:
+If error occurs trying to push to remote "Could not create directory '/p/somedir/somefolder/projfolder/=/.SSH '." or something like that then git is not properly inferring your home directory. 
+
+To verify your current home directory: `$echo $HOME` 
+This variable may be set by going to control panel --> System --> Advanced System Settings --> Environmental Variables, Then create a new variable called "HOME" and enter `P:\` as the value.  
+When SSH keys were set up this should be where you put them. If not, the make sure your home directory matches the directory where your SSH key rsa files are. Or you can generate a new SSH key from scratch.
+
+
+### HELPFUL RESOURCES
+<A HREF="https://help.github.com/" >GitHub Help</A>  
+<A HREF="https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/" >Resolving a merge conflict using the command line - User Documentation</A>  
+<A HREF="https://git-scm.com/docs/git-checkout"> Git - git-checkout Documentation</A>  
+<A HREF="https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes">Git - Working with Remotes</A>  
+<A HREF="http://blog.scottlowe.org/2015/01/14/non-programmer-git-intro/">A Non-Programmers Introduction to Git · Scotts Weblog </A>  
+<A HREF="https://help.github.com/articles/fork-a-repo/" >Fork A Repo - User Documentation</A>  
+<A HREF="https://gettinggit.com/learn" >Learn Git - From the Getting Git video course</A>  
+<A HREF="https://stackoverflow.com/questions/16103810/force-my-local-master-to-be-origin-master" >git - Force my local master to be origin/master - Stack Overflow</A>  
+<A HREF="https://github.com/blog/2019-how-to-undo-almost-anything-with-git" >How to undo (almost) anything with Git</A> 
+<A HREF="http://share.ez.no/blogs/virgil-ciobanu/how-to-syncronize-your-github-fork-with-original-repository" >How to syncronize your github fork with &quot;original&quot; repository - The eZ Publish Community</A>  
+<A HREF="http://chriscase.cc/2011/02/syncing-a-forked-git-repository-with-a-master-repositorys-changes/" >Syncing a Forked git Repository With a Master Repository’s Changes - Chris Case</A>  
+<A HREF="http://www.bartread.com/2014/02/12/git-basics-how-to-merge-changes-from-a-different-fork-into-your-own-branch/" >Git basics: how to merge changes from a different fork into your own branch - Bart Read</A>  
+<A HREF="http://marklodato.github.io/visual-git-guide/index-en.html" >A Visual Git Reference</A>  
+<A HREF="https://gist.github.com/i-e-b/b45bdcf47839cafbc718" >Git learning materials</A>  
+<A HREF="https://medium.com/@Tiagojdferreira/how-i-set-up-my-git-in-a-new-computer-85bb461b089f" >How I configure my git in a new computer – Tiago Ferreira – Medium</A>  
+<A HREF="http://rogerdudler.github.io/git-guide/" >git - the simple guide - no deep shit!</A>  
+<A HREF="http://happygitwithr.com/rstudio-git-github.html" >Happy Git and GitHub for the useR</A>  
+<A HREF="https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/" >Generating a new SSH key and adding it to the ssh-agent - User Documentation</A>  
+<A HREF="https://help.github.com/articles/fetching-a-remote/" >Fetching a remote - User Documentation</A>  
+<A HREF="https://help.github.com/articles/removing-sensitive-data-from-a-repository/" >Removing sensitive data from a repository - User Documentation</A>  
+<A HREF="https://stackoverflow.com/questions/24154816/git-bash-could-not-open-a-connection-to-your-authentication-agent/31017638" >github - Git Bash: Could not open a connection to your authentication agent - Stack Overflow</A>  
+<A HREF="https://apple.stackexchange.com/questions/48502/how-can-i-permanently-add-my-ssh-private-key-to-keychain-so-it-is-automatically" >How can I permanently add my SSH private key to Keychain so it is automatically available to ssh? - Ask Different</A>  
+<A HREF="https://www.onwebsecurity.com/configuration/git-on-windows-location-of-global-configuration-file.html" >git on Windows - location of configuration files | On Web Security</A>  
+<A HREF="http://zeeelog.blogspot.com/2017/08/the-authenticity-of-host-githubcom.html" >The authenticity of host &#39;github.com (192.30.252.129)&#39; can&#39;t be established. (Problem solved) | Zee Log</A>  
+<A HREF="https://docs.microsoft.com/en-us/vsts/git/use-ssh-keys-to-authenticate?view=vsts" >Connect to your Git repos with SSH | Microsoft Docs</A>  
+<A HREF="https://betterexplained.com/articles/aha-moments-when-learning-git/" >Aha! Moments When Learning Git – BetterExplained</A>  
+
+

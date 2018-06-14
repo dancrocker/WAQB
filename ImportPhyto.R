@@ -1,9 +1,9 @@
 ##############################################################################################################################
 #     Title: ImportPhyto.R
-#     Description: This script will Format/Process MWRA data to DCR
-#     Written by: Dan Crocker, Max Nyquist
-#     Last Update: April 2018
-#    This script will process and import Wachusett Phytoplankton data into the AB Database
+#     Description: This script will Format/Process Quabbin reservoir phytoplankton data
+#     Written by: Dan Crocker, Max Nyquist, Brett Boisjolie
+#     Last Update: June 2018
+#    This script will process and import Quabbin Phytoplankton data into the database
 ##############################################################################################################################
 
 # COMMENT OUT BELOW WHEN RUNNING FUNCTION IN SHINY
@@ -68,15 +68,10 @@ removeNA <- complete.cases(df.wq)
 df.wq <- df.wq[removeNA,]
 
 #!# Remove values where Density = 0
-# removeZeros <- apply(df.wq, 1, function(row) all(row !=0 ))
+
 df.wq <- df.wq[df.wq$Density > 0,]
 
 # modify column names and add missing columns
-# df.wq["SampleDate"] <- dataDate
-# df.wq["Station"] <- dataLoc
-# df.wq["Analyst"] <- analyst
-# df.wq["ImportDate"] <- today()
-# df.wq["DataSource"] <- file
 
 df.wq <- df.wq %>% 
   mutate(SampleDate = dataDate, 
